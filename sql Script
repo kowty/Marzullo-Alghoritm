@@ -1,0 +1,21 @@
+select *
+from (
+    select #exibition-field#, datediff(minute, min(dt), max(dt)) duration 
+    from (
+        select *
+        ,(row_number() over(partition by #exibition-field# order by dt)-1) / 2 rn 
+        from (
+            select *, sum([index]) over(partition by #exibition-field# order by dt rows between unbounded preceding and current row) cumul
+            from (
+                select #exibition-field#, #initial-date# as dt, 1 as [index]  
+                from #table#
+                union all
+                select #exibition-field#, #final-date#, -1 
+                from #table#
+                
+            )a
+        )b
+        where ([index]=1 and cumul=1) OR ([index]=-1 and cumul=0)
+    )c
+    group by #exibition-field#, rn
+)d
